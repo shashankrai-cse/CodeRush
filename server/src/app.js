@@ -22,7 +22,11 @@ import subjectRoutes from './modules/subject/subject.routes.js';
 import assignmentRoutes from './modules/assignment/assignment.routes.js';
 import practicalRoutes from './modules/practical/practical.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
+<<<<<<< HEAD
 import onlineClassRoutes from './modules/onlineClass/onlineClass.routes.js';
+=======
+import userRoutes from './modules/users/user.routes.js';
+>>>>>>> b60fd64911fb9247c1b70c1dba37652f5a7163b6
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -60,7 +64,11 @@ app.use('/api/v1/subjects', subjectRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/practicals', practicalRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+<<<<<<< HEAD
 app.use('/api/v1/classes', onlineClassRoutes);
+=======
+app.use('/api/v1/users', userRoutes);
+>>>>>>> b60fd64911fb9247c1b70c1dba37652f5a7163b6
 
 app.use(notFound);
 app.use(errorHandler);
