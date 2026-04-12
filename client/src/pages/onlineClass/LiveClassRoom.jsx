@@ -115,7 +115,7 @@ export default function LiveClassRoom({ classData, onLeave }) {
 
           peer.onicecandidate = (event) => {
             if (event.candidate) {
-              socketRef.current.emit('webrtc-ice-candidate', { target: socketId, candidate: event.candidate });
+              socketRef.current.emit('webrtc-ice-candidate', { target: socketId, caller: socketRef.current.id, candidate: event.candidate });
             }
           };
 
@@ -160,7 +160,7 @@ export default function LiveClassRoom({ classData, onLeave }) {
         });
 
         socketRef.current.on('webrtc-ice-candidate', async (payload) => {
-          const peer = peersRef.current[payload.caller] || peersRef.current[payload.target];
+          const peer = peersRef.current[payload.caller];
           if (peer && payload.candidate) {
             await peer.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(e => console.log(e));
           }
