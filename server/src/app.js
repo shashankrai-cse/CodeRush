@@ -18,6 +18,8 @@ import attendanceRoutes from './modules/attendance/attendance.routes.js';
 import noticeRoutes from './modules/notice/notice.routes.js';
 import complaintRoutes from './modules/complaint/complaint.routes.js';
 import utilitiesRoutes from './modules/utilities/utilities.routes.js';
+import subjectRoutes from './modules/subject/subject.routes.js';
+import assignmentRoutes from './modules/assignment/assignment.routes.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -51,6 +53,8 @@ app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/notices', noticeRoutes);
 app.use('/api/v1/complaints', complaintRoutes);
 app.use('/api/v1/utilities', utilitiesRoutes);
+app.use('/api/v1/subjects', subjectRoutes);
+app.use('/api/v1/assignments', assignmentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

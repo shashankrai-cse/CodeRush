@@ -576,7 +576,8 @@ button {
   flex-shrink: 0;
 }
 
-.auth-input-wrap input {
+.auth-input-wrap input,
+.auth-input-wrap select {
   border: none;
   outline: none;
   background: transparent;
@@ -594,7 +595,7 @@ button {
 /* Role selector */
 .auth-role-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.55rem;
 }
 

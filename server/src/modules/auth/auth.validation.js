@@ -58,13 +58,35 @@ export const registerValidation = [
   body('role')
     .optional()
     .isIn(USER_ROLES)
-    .withMessage(`Role must be one of: ${USER_ROLES.join(', ')}`),
+    .withMessage(`Role must be one of: ${USER_ROLES.join(', ')}`)
+    .custom((value) => {
+      if (value === 'admin') {
+        throw new Error('Admin registration is not allowed');
+      }
+      return true;
+    }),
 
   body('department')
     .optional()
     .trim()
     .isLength({ max: 100 })
     .withMessage('Department must be at most 100 characters'),
+
+  body('campus')
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage('Invalid campus ID'),
+
+  body('enrollmentYear')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 1, max: 6 })
+    .withMessage('Year must be between 1 and 6'),
+
+  body('section')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 10 })
+    .withMessage('Section must be at most 10 characters'),
 
   handleValidationErrors
 ];

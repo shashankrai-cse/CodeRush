@@ -2,13 +2,13 @@
 // Register Page – matches cream/brown Smart Campus OS theme
 // ─────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import api from '../../api/client.js';
 
 const ROLES = [
   { value: 'student', label: '🎓 Student', description: 'Access classes, attendance & resources' },
-  { value: 'teacher', label: '📚 Teacher', description: 'Manage courses, grades & mentoring' },
-  { value: 'admin', label: '🛡️ Admin', description: 'Institution-wide operations & analytics' }
+  { value: 'teacher', label: '📚 Teacher', description: 'Manage courses, grades & mentoring' }
 ];
 
 export default function RegisterPage({ onSwitch, onSuccess }) {
@@ -18,8 +18,28 @@ export default function RegisterPage({ onSwitch, onSuccess }) {
     email: '',
     password: '',
     role: 'student',
-    department: ''
+    department: '',
+    campus: '',
+    enrollmentYear: '',
+    section: ''
   });
+  
+  const [campuses, setCampuses] = useState([]);
+
+  useEffect(() => {
+    async function fetchCampuses() {
+      try {
+        const { data } = await api.get('/locations');
+        setCampuses(data.data.locations);
+        if (data.data.locations.length > 0) {
+          setForm(f => ({ ...f, campus: data.data.locations[0]._id }));
+        }
+      } catch (err) {
+        console.error('Failed to load campuses');
+      }
+    }
+    fetchCampuses();
+  }, []);
 
   function handleChange(e) {
     clearError();
@@ -30,7 +50,14 @@ export default function RegisterPage({ onSwitch, onSuccess }) {
     e.preventDefault();
 
     try {
-      await register(form);
+      const payload = { ...form };
+      if (payload.role !== 'student') {
+        delete payload.enrollmentYear;
+        delete payload.section;
+      }
+      if (!payload.enrollmentYear) delete payload.enrollmentYear;
+      
+      await register(payload);
       onSuccess?.();
     } catch {
       // error is set by context
@@ -157,17 +184,82 @@ export default function RegisterPage({ onSwitch, onSuccess }) {
               <path d="M2 20h20M4 20V8l8-5 8 5v12" />
               <path d="M9 20v-4h6v4" />
             </svg>
-            <input
+            <select
               id="register-dept"
-              type="text"
               name="department"
               value={form.department}
               onChange={handleChange}
-              placeholder="e.g. Computer Science"
-              autoComplete="organization"
-            />
+              className="auth-select"
+            >
+              <option value="" disabled>Select a department</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="Electronics & Communication">Electronics & Communication</option>
+              <option value="Electrical Engineering">Electrical Engineering</option>
+              <option value="Mechanical Engineering">Mechanical Engineering</option>
+              <option value="Civil Engineering">Civil Engineering</option>
+              <option value="Business Administration">Business Administration</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
         </div>
+
+        <div className="auth-field">
+          <label htmlFor="register-campus">Campus Location <span className="text-red-500">*</span></label>
+          <div className="auth-input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <select
+              id="register-campus"
+              name="campus"
+              value={form.campus}
+              onChange={handleChange}
+              className="auth-select"
+              required
+            >
+              <option value="" disabled>Select your campus</option>
+              {campuses.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {form.role === 'student' && (
+          <div className="auth-role-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="auth-field">
+              <label htmlFor="register-year">Year</label>
+              <div className="auth-input-wrap">
+                <select id="register-year" name="enrollmentYear" value={form.enrollmentYear} onChange={handleChange} className="auth-select" required>
+                  <option value="" disabled>Year</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                  <option value="5">5th Year</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="auth-field">
+              <label htmlFor="register-section">Section</label>
+              <div className="auth-input-wrap">
+                <input
+                  id="register-section"
+                  type="text"
+                  name="section"
+                  value={form.section}
+                  onChange={handleChange}
+                  placeholder="e.g. A"
+                  maxLength={10}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

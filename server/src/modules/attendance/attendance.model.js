@@ -9,15 +9,31 @@ import crypto from 'crypto';
 const attendanceSessionSchema = new mongoose.Schema(
   {
     subject: {
-      type: String,
-      required: true,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subject',
+      required: true
+    },
+
+    campus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CampusLocation',
+      required: true
     },
 
     date: {
       type: Date,
       required: true,
       default: Date.now
+    },
+
+    scheduledDate: {
+      type: Date
+    },
+
+    status: {
+      type: String,
+      enum: ['scheduled', 'active', 'completed'],
+      default: 'active'
     },
 
     // Teacher who created this session

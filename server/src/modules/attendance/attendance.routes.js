@@ -10,7 +10,8 @@ import {
   getSessionRecords,
   markAttendance,
   manualMark,
-  getMyAttendance
+  getMyAttendance,
+  generateAttendancePdf
 } from './attendance.controller.js';
 import {
   createSessionValidation,
@@ -24,6 +25,7 @@ const router = Router();
 router.post('/sessions', protect, authorize('teacher', 'admin'), createSessionValidation, createSession);
 router.get('/sessions', protect, authorize('teacher', 'admin'), getSessions);
 router.get('/sessions/:id/records', protect, authorize('teacher', 'admin'), getSessionRecords);
+router.get('/report/pdf', protect, authorize('teacher', 'admin'), generateAttendancePdf);
 router.put('/manual', protect, authorize('teacher', 'admin'), manualMarkValidation, manualMark);
 
 // Student routes

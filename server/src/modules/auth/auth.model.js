@@ -52,6 +52,23 @@ const userSchema = new mongoose.Schema(
       default: ''
     },
 
+    campus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CampusLocation'
+    },
+
+    enrollmentYear: {
+      type: Number,
+      min: 1,
+      max: 6
+    },
+
+    section: {
+      type: String,
+      trim: true,
+      maxlength: 10
+    },
+
     avatarSeed: {
       type: String,
       default: 'campus'
@@ -94,6 +111,9 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     email: this.email,
     role: this.role,
     department: this.department,
+    campus: this.campus,
+    enrollmentYear: this.enrollmentYear,
+    section: this.section,
     avatarSeed: this.avatarSeed,
     lastLoginAt: this.lastLoginAt,
     createdAt: this.createdAt

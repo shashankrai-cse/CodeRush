@@ -34,4 +34,10 @@ router.get('/discussions', protect, getDiscussions);
 router.post('/discussions/:id/answers', protect, addAnswerValidation, addAnswer);
 router.put('/discussions/:id/solved', protect, toggleSolved);
 
+import { promoteClass } from './promote.controller.js';
+import { authorize } from '../../middleware/auth.js';
+
+// ── Promotion ──────────────────────────────────────────
+router.post('/promote-class', protect, authorize('teacher', 'admin'), promoteClass);
+
 export default router;

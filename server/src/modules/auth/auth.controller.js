@@ -15,7 +15,7 @@ import {
 // ─────────────────────────────────────────────────────────
 export async function register(req, res, next) {
   try {
-    const { fullName, email, password, role, department, avatarSeed } = req.body;
+    const { fullName, email, password, role, department, campus, enrollmentYear, section, avatarSeed } = req.body;
 
     // Check for existing user
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -34,6 +34,9 @@ export async function register(req, res, next) {
       password,
       role: role || 'student',
       department,
+      campus,
+      enrollmentYear,
+      section,
       avatarSeed
     });
 

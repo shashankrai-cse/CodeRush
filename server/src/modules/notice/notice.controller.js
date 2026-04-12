@@ -58,12 +58,17 @@ export async function getAllNotices(req, res, next) {
     const userRole = req.user.role;
 
     // Show notices targeted at the user's role OR notices with no target (= everyone)
-    const notices = await Notice.find({
-      $or: [
-        { targetRoles: { $size: 0 } },
-        { targetRoles: userRole }
-      ]
-    })
+    const query = req.user.role === 'admin'
+      ? {}
+      : {
+          $or: [
+            { targetRoles: { $size: 0 } },
+            { targetRoles: userRole },
+            { author: req.user._id }
+          ]
+        };
+
+    const notices = await Notice.find(query)
       .populate('author', 'fullName role')
       .sort({ createdAt: -1 })
       .limit(100);

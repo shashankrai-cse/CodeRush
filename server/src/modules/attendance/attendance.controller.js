@@ -9,15 +9,20 @@ import { isWithinCampus } from '../../utils/geo.js';
 // ── POST /sessions – Teacher creates a new attendance session
 export async function createSession(req, res, next) {
   try {
-    const { subject, date, department, expiresInMinutes } = req.body;
+    const { subject, date, scheduledDate, department, expiresInMinutes } = req.body;
 
     const expiresAt = expiresInMinutes
       ? new Date(Date.now() + expiresInMinutes * 60 * 1000)
       : undefined;
 
+    const sessionStatus = scheduledDate ? 'scheduled' : 'active';
+
     const session = await AttendanceSession.create({
       subject,
+      campus: req.user.campus,
       date: date || new Date(),
+      scheduledDate,
+      status: sessionStatus,
       department: department || req.user.department,
       createdBy: req.user._id,
       ...(expiresAt && { expiresAt })
@@ -230,6 +235,57 @@ export async function getMyAttendance(req, res, next) {
         }
       }
     });
+  } catch (error) {
+    return next(error);
+  }
+}
+import PDFDocument from 'pdfkit';
+
+// ── GET /report/pdf – Generate a PDF report for attendance
+export async function generateAttendancePdf(req, res, next) {
+  try {
+    const { subjectId, campusId } = req.query;
+    const filter = {};
+    if (subjectId) filter.subject = subjectId;
+    if (campusId) filter.campus = campusId;
+
+    if (req.user.role === 'teacher') filter.createdBy = req.user._id;
+
+    const sessions = await AttendanceSession.find(filter)
+      .populate('subject', 'name code')
+      .populate('campus', 'name')
+      .sort({ date: -1 });
+
+    const sessionIds = sessions.map(s => s._id);
+    const records = await AttendanceRecord.find({ session: { $in: sessionIds } })
+      .populate('student', 'fullName email enrollmentYear section');
+
+    // Create PDF
+    const doc = new PDFDocument({ margin: 50 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=attendance-report.pdf');
+    doc.pipe(res);
+
+    doc.fontSize(20).text('Attendance Report', { align: 'center' });
+    doc.moveDown();
+
+    sessions.forEach(session => {
+      doc.fontSize(14).text(`Session: ${session.subject?.name || 'Unknown'} - ${new Date(session.date).toLocaleDateString()}`);
+      doc.fontSize(10).text(`Campus: ${session.campus?.name || 'Unknown'}  |  Status: ${session.status}`);
+      doc.moveDown(0.5);
+
+      const sessionRecords = records.filter(r => r.session.toString() === session._id.toString());
+      if (sessionRecords.length === 0) {
+        doc.text('No records found for this session.', { style: 'italic' });
+      } else {
+        sessionRecords.forEach((record, index) => {
+          doc.text(`${index + 1}. ${record.student?.fullName || 'Unknown Student'} (${record.student?.section || 'N/A'}) - ${record.status.toUpperCase()}`);
+        });
+      }
+      doc.moveDown();
+    });
+
+    doc.end();
   } catch (error) {
     return next(error);
   }

@@ -23,8 +23,8 @@ const locationValidation = [
   handleValidationErrors
 ];
 
-// All routes require admin role
-router.get('/', protect, getLocations);
+// GET locations must be public for the registration form
+router.get('/', getLocations);
 router.post('/', protect, authorize('admin'), locationValidation, addLocation);
 router.put('/:id', protect, authorize('admin'), updateLocation);
 router.delete('/:id', protect, authorize('admin'), deleteLocation);
