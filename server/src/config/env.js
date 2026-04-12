@@ -24,7 +24,10 @@ const env = {
   // Cloudinary Details
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
-  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+
+  // Email Notifications (Resend)
+  resendApiKey: process.env.RESEND_API_KEY
 };
 
 export default env;

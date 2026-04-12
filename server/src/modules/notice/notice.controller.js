@@ -1,9 +1,7 @@
-// ─────────────────────────────────────────────────────────
-// Notice Controller – CRUD with file attachments & AI summary
-// ─────────────────────────────────────────────────────────
-
 import { Notice } from './notice.model.js';
 import { summariseText } from '../../utils/summariser.js';
+import { User } from '../auth/auth.model.js';
+import { sendBulkMail, buildEmailHTML } from '../../utils/mailer.js';
 
 // ── POST /notices – Create a notice with optional file attachments
 export async function createNotice(req, res, next) {
@@ -41,6 +39,23 @@ export async function createNotice(req, res, next) {
     });
 
     await notice.populate('author', 'fullName role');
+
+    // Email notification to relevant students
+    const emailQuery = { role: 'student' };
+    const students = await User.find(emailQuery).select('email fullName');
+    if (students.length > 0) {
+      const priorityLabel = priority === 'urgent' ? '🔴 URGENT' : priority === 'important' ? '🟡 Important' : '🟢 Normal';
+      sendBulkMail(students, `📢 Notice: ${title}`, buildEmailHTML({
+        type: 'notice', icon: '📢',
+        title: title,
+        details: [
+          { label: 'Priority', value: priorityLabel },
+          { label: 'Content', value: noticeBody.substring(0, 300) + (noticeBody.length > 300 ? '...' : '') },
+          { label: 'Posted By', value: req.user.fullName }
+        ],
+        ctaText: 'Read Full Notice →'
+      }));
+    }
 
     return res.status(201).json({
       success: true,

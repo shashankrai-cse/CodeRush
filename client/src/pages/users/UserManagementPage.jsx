@@ -3,15 +3,40 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../api/client.js';
 import { DEPARTMENTS } from '../../constants.js';
 
+const ROLE_COLORS = {
+  student: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6' },
+  teacher: { bg: '#ede9fe', text: '#6d28d9', dot: '#8b5cf6' },
+  admin:   { bg: '#fef3c7', text: '#b45309', dot: '#f59e0b' },
+};
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #667eea, #764ba2)',
+  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #4facfe, #00f2fe)',
+  'linear-gradient(135deg, #43e97b, #38f9d7)',
+  'linear-gradient(135deg, #fa709a, #fee140)',
+  'linear-gradient(135deg, #a18cd1, #fbc2eb)',
+  'linear-gradient(135deg, #fccb90, #d57eeb)',
+  'linear-gradient(135deg, #e0c3fc, #8ec5fc)',
+];
+
+function getAvatarGradient(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
 export default function UserManagementPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Filtering state
   const [filterDept, setFilterDept] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterSection, setFilterSection] = useState('');
+  const [filterRole, setFilterRole] = useState('');
 
   // Editing state
   const [editingUser, setEditingUser] = useState(null);
@@ -41,7 +66,6 @@ export default function UserManagementPage() {
     try {
       await api.delete(`/users/${id}`);
       setUsers(users.filter(u => u._id !== id));
-      alert('User deleted');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete user');
     }
@@ -62,7 +86,6 @@ export default function UserManagementPage() {
     e.preventDefault();
     try {
       await api.put(`/users/${editingUser._id}`, editForm);
-      alert('User updated');
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
@@ -94,120 +117,294 @@ export default function UserManagementPage() {
     if (filterDept && u.department !== filterDept) return false;
     if (filterYear && String(u.enrollmentYear) !== filterYear) return false;
     if (filterSection && u.section !== filterSection) return false;
+    if (filterRole && u.role !== filterRole) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!u.fullName.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
+  // Summary stats
+  const totalStudents = users.filter(u => u.role === 'student').length;
+  const totalTeachers = users.filter(u => u.role === 'teacher').length;
+  const totalAdmins = users.filter(u => u.role === 'admin').length;
+
   return (
-    <div className="mod-container animate-fade-in">
-      <div className="mod-hero flex justify-between items-center pr-6">
+    <div className="mod-container animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+
+      {/* ─── Header ─── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div>
-          <h2 className="mod-title flex gap-2 items-center">
-            <span>👥</span> Directory Management
+          <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #667eea, #764ba2)', fontSize: '1.2rem' }}>👥</span>
+            People Directory
           </h2>
-          <p className="mod-subtitle">View and manage users, update records, and maintain the campus roster.</p>
+          <p style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: '0.4rem', fontWeight: 500 }}>
+            Manage campus roster, update student records, and handle promotions
+          </p>
         </div>
-        <div>
-          <button className="btn-primary" onClick={() => setShowBulkModal(true)}>
-            ⚡ Bulk Promote Section
-          </button>
-        </div>
+        <button 
+          className="btn-primary"
+          onClick={() => setShowBulkModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 8px 16px rgba(17,24,39,0.15)' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Bulk Promote
+        </button>
       </div>
 
-      <div className="mod-card mb-6" style={{ display: 'flex', gap: '1rem' }}>
-        <select className="mod-input" value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{flex: 1}}>
-          <option value="">All Departments</option>
+      {/* ─── Summary Stats ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        {[
+          { label: 'Total Users', value: users.length, color: '#111827', bg: '#f9fafb', icon: '👥' },
+          { label: 'Students', value: totalStudents, color: '#1e40af', bg: '#eff6ff', icon: '🎓' },
+          { label: 'Teachers', value: totalTeachers, color: '#6d28d9', bg: '#f5f3ff', icon: '📚' },
+          { label: 'Admins', value: totalAdmins, color: '#b45309', bg: '#fffbeb', icon: '🛡️' },
+        ].map(stat => (
+          <div key={stat.label} style={{
+            background: stat.bg, borderRadius: '14px', padding: '1.2rem 1.5rem',
+            border: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: '1rem'
+          }}>
+            <span style={{ fontSize: '1.8rem' }}>{stat.icon}</span>
+            <div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, marginTop: '0.15rem' }}>{stat.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Search & Filters ─── */}
+      <div style={{
+        display: 'flex', gap: '0.75rem', flexWrap: 'wrap', background: '#fff',
+        borderRadius: '14px', padding: '1rem 1.25rem', border: '1px solid rgba(0,0,0,0.06)',
+        marginBottom: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.02)', alignItems: 'center'
+      }}>
+        {/* Search */}
+        <div style={{ 
+          flex: '1 1 220px', display: 'flex', alignItems: 'center', gap: '0.5rem', 
+          background: '#f9fafb', borderRadius: '8px', padding: '0.55rem 0.8rem', border: '1px solid #e5e7eb'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input 
+            placeholder="Search by name or email..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.9rem', color: '#111827' }}
+          />
+        </div>
+
+        {/* Role Filter */}
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{
+          padding: '0.55rem 0.8rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
+          color: '#374151', background: '#f9fafb', cursor: 'pointer', fontWeight: 500
+        }}>
+          <option value="">All Roles</option>
+          <option value="student">Students</option>
+          <option value="teacher">Teachers</option>
+          <option value="admin">Admins</option>
+        </select>
+
+        {/* Department Filter */}
+        <select value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{
+          padding: '0.55rem 0.8rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
+          color: '#374151', background: '#f9fafb', cursor: 'pointer', fontWeight: 500
+        }}>
+          <option value="">All Depts</option>
           {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
-        <input type="number" placeholder="Filter Year (e.g. 1)" className="mod-input" value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{flex: 1}} />
-        <input placeholder="Filter Section (e.g. A)" className="mod-input" value={filterSection} onChange={e => setFilterSection(e.target.value)} style={{flex: 1}} />
-        <button className="btn-outline" onClick={() => { setFilterDept(''); setFilterYear(''); setFilterSection(''); }}>Clear Filters</button>
+
+        {/* Year & Section */}
+        <input type="number" placeholder="Year" min="1" max="6" value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{
+          padding: '0.55rem 0.8rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
+          color: '#374151', background: '#f9fafb', width: '80px', fontWeight: 500
+        }} />
+        <input placeholder="Sec" value={filterSection} onChange={e => setFilterSection(e.target.value)} style={{
+          padding: '0.55rem 0.8rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
+          color: '#374151', background: '#f9fafb', width: '70px', fontWeight: 500
+        }} />
+
+        {/* Clear */}
+        {(filterDept || filterYear || filterSection || filterRole || searchQuery) && (
+          <button onClick={() => { setFilterDept(''); setFilterYear(''); setFilterSection(''); setFilterRole(''); setSearchQuery(''); }} style={{
+            padding: '0.55rem 0.8rem', borderRadius: '8px', background: '#fee2e2', color: '#dc2626',
+            border: '1px solid #fecaca', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '0.3rem'
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Clear
+          </button>
+        )}
+
+        <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>
+          {filteredUsers.length} result{filteredUsers.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
+      {/* ─── User Cards Grid ─── */}
       {loading ? (
         <div className="mod-spinner-wrap"><div className="mod-spinner"/></div>
+      ) : filteredUsers.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(255,255,255,0.5)', borderRadius: '16px', border: '1px dashed rgba(0,0,0,0.1)' }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ margin: '0 auto 1rem' }}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+          <div style={{ color: '#4b5563', fontSize: '1.1rem', fontWeight: 600 }}>No Users Found</div>
+          <div style={{ color: '#9ca3af', fontSize: '0.9rem', marginTop: '0.4rem' }}>Try adjusting your search or filter criteria</div>
+        </div>
       ) : (
-        <div className="mod-card">
-          <div className="mod-table-wrap">
-            <table className="mod-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Details</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map(u => (
-                  <tr key={u._id}>
-                    <td className="font-medium text-ink-900">{u.fullName}</td>
-                    <td>{u.email}</td>
-                    <td>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {u.role.toUpperCase()}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+          {filteredUsers.map(u => {
+            const roleStyle = ROLE_COLORS[u.role] || ROLE_COLORS.student;
+            return (
+              <div key={u._id} style={{
+                background: '#fff', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(0,0,0,0.05)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.02)', transition: 'all 0.2s ease',
+                position: 'relative', overflow: 'hidden'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.02)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                {/* Accent stripe */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: roleStyle.dot }} />
+                
+                {/* Top: Avatar + Info */}
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+                    background: getAvatarGradient(u.fullName),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.2rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em'
+                  }}>
+                    {u.fullName.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Name & Email */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.fullName}</h3>
+                      <span style={{
+                        display: 'inline-flex', padding: '0.15rem 0.5rem', borderRadius: '99px', fontSize: '0.65rem',
+                        fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                        background: roleStyle.bg, color: roleStyle.text
+                      }}>
+                        {u.role}
                       </span>
-                    </td>
-                    <td className="text-sm text-ink-500">
-                      {u.role === 'student' ? (
-                        <>Dept: {u.department} | Yr: {u.enrollmentYear} | Sec: {u.section || 'N/A'}</>
-                      ) : (
-                        <>Dept: {u.department || 'All'} | {u.campus?.name}</>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button className="text-sm text-blue-600 hover:underline" onClick={() => startEdit(u)}>Edit</button>
-                        <button className="text-sm text-red-600 hover:underline" onClick={() => handleDelete(u._id)}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {u.email}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details row */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                  {u.department && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#f3f4f6', fontSize: '0.78rem', fontWeight: 600, color: '#374151' }}>
+                      🏛️ {u.department}
+                    </span>
+                  )}
+                  {u.role === 'student' && u.enrollmentYear && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#eff6ff', fontSize: '0.78rem', fontWeight: 600, color: '#1e40af' }}>
+                      📅 Year {u.enrollmentYear}
+                    </span>
+                  )}
+                  {u.role === 'student' && u.section && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#f0fdf4', fontSize: '0.78rem', fontWeight: 600, color: '#166534' }}>
+                      🔤 Sec {u.section}
+                    </span>
+                  )}
+                  {u.role === 'student' && u.rollNumber && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#fef3c7', fontSize: '0.78rem', fontWeight: 600, color: '#b45309' }}>
+                      # {u.rollNumber}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', paddingTop: '0.8rem', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                  <button onClick={() => startEdit(u)} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                    padding: '0.5rem', borderRadius: '8px', background: '#eff6ff', color: '#2563eb',
+                    border: '1px solid #bfdbfe', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(u._id)} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                    padding: '0.5rem', borderRadius: '8px', background: '#fef2f2', color: '#dc2626',
+                    border: '1px solid #fecaca', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* ─── Edit Modal ─── */}
       {editingUser && (
-        <div className="dash-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="mod-card" style={{ width: '100%', maxWidth: '400px' }}>
-            <h3 className="text-lg font-medium mb-4">Edit User Profile</h3>
-            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label className="text-sm font-medium">Full Name</label>
-                <input required className="mod-input" value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} />
+        <div className="dash-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="auth-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem', borderRadius: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: getAvatarGradient(editingUser.fullName),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.1rem', fontWeight: 800, color: '#fff'
+              }}>
+                {editingUser.fullName.charAt(0).toUpperCase()}
               </div>
-              
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#111827' }}>Edit Profile</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280' }}>{editingUser.email}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div className="auth-field">
+                <label>Full Name</label>
+                <div className="auth-input-wrap"><input required value={editForm.fullName} onChange={e => setEditForm({...editForm, fullName: e.target.value})} /></div>
+              </div>
+
               {editingUser.role === 'student' && (
                 <>
-                  <div>
-                    <label className="text-sm font-medium">Department</label>
-                    <select className="mod-input" value={editForm.department} onChange={e => setEditForm({...editForm, department: e.target.value})}>
-                      <option value="">Select Department</option>
-                      {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="auth-field">
+                      <label>Department</label>
+                      <div className="auth-input-wrap">
+                        <select value={editForm.department} onChange={e => setEditForm({...editForm, department: e.target.value})} style={{ width: '100%', border: 'none', background: 'transparent' }}>
+                          <option value="">Select</option>
+                          {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="auth-field">
+                      <label>Year</label>
+                      <div className="auth-input-wrap"><input type="number" min="1" max="6" value={editForm.enrollmentYear} onChange={e => setEditForm({...editForm, enrollmentYear: e.target.value})} /></div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Year</label>
-                    <input type="number" min="1" className="mod-input" value={editForm.enrollmentYear} onChange={e => setEditForm({...editForm, enrollmentYear: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Section</label>
-                    <input className="mod-input" value={editForm.section} onChange={e => setEditForm({...editForm, section: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Roll Number</label>
-                    <input className="mod-input" value={editForm.rollNumber} onChange={e => setEditForm({...editForm, rollNumber: e.target.value})} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="auth-field">
+                      <label>Section</label>
+                      <div className="auth-input-wrap"><input value={editForm.section} onChange={e => setEditForm({...editForm, section: e.target.value})} placeholder="e.g. A" /></div>
+                    </div>
+                    <div className="auth-field">
+                      <label>Roll Number</label>
+                      <div className="auth-input-wrap"><input value={editForm.rollNumber} onChange={e => setEditForm({...editForm, rollNumber: e.target.value})} placeholder="e.g. 2201" /></div>
+                    </div>
                   </div>
                 </>
               )}
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button type="button" className="btn-outline" onClick={() => setEditingUser(null)}>Cancel</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn-outline" onClick={() => setEditingUser(null)} style={{ background: '#fff' }}>Cancel</button>
                 <button type="submit" className="btn-primary">Save Changes</button>
               </div>
             </form>
@@ -215,49 +412,61 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* Bulk Promote Modal */}
+      {/* ─── Bulk Promote Modal ─── */}
       {showBulkModal && (
-        <div className="dash-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="mod-card" style={{ width: '100%', maxWidth: '500px' }}>
-            <h3 className="text-lg font-medium mb-4">⚡ Bulk Promote Section</h3>
-            <p className="text-sm text-ink-500 mb-6">Select a target demographic of students and instantly upgrade their year or re-assign their section globally.</p>
+        <div className="dash-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="auth-card" style={{ width: '100%', maxWidth: '560px', padding: '2.5rem', borderRadius: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', fontSize: '1.2rem' }}>⚡</span>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#111827' }}>Bulk Promote Section</h3>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
+              Select a target demographic of students and instantly upgrade their year or re-assign their section globally.
+            </p>
             
-            <form onSubmit={handleBulkPromoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                 <div style={{ flex: 1 }}>
-                   <label className="text-sm font-medium text-red-600 block mb-1">Target Department *</label>
-                   <select required className="mod-input" value={bulkForm.targetDepartment} onChange={e => setBulkForm({...bulkForm, targetDepartment: e.target.value})}>
-                     <option value="">Select Target...</option>
-                     {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                   </select>
-                 </div>
-                 <div style={{ flex: 1 }}>
-                   <label className="text-sm font-medium text-red-600 block mb-1">Target Year *</label>
-                   <input required type="number" min="1" className="mod-input" placeholder="e.g. 1" value={bulkForm.targetYear} onChange={e => setBulkForm({...bulkForm, targetYear: e.target.value})} />
-                 </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium block mb-1">Target Section (Optional)</label>
-                <input className="mod-input" placeholder="Limit to specific section (e.g. A)" value={bulkForm.targetSection} onChange={e => setBulkForm({...bulkForm, targetSection: e.target.value})} />
-              </div>
-
-              <hr className="my-2" />
-              
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                 <div style={{ flex: 1 }}>
-                   <label className="text-sm font-medium block mb-1">New Year (Optional)</label>
-                   <input type="number" min="1" className="mod-input" placeholder="Leave blank to skip" value={bulkForm.newYear} onChange={e => setBulkForm({...bulkForm, newYear: e.target.value})} />
-                 </div>
-                 <div style={{ flex: 1 }}>
-                   <label className="text-sm font-medium block mb-1">New Section (Optional)</label>
-                   <input className="mod-input" placeholder="Leave blank to skip" value={bulkForm.newSection} onChange={e => setBulkForm({...bulkForm, newSection: e.target.value})} />
-                 </div>
+            <form onSubmit={handleBulkPromoteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              {/* Target Selection */}
+              <div style={{ background: '#fef2f2', borderRadius: '12px', padding: '1rem', border: '1px solid #fecaca' }}>
+                <label style={{ display: 'block', fontWeight: 700, color: '#dc2626', marginBottom: '0.8rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Selection</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="auth-field">
+                    <label style={{ fontSize: '0.8rem' }}>Department *</label>
+                    <div className="auth-input-wrap">
+                      <select required value={bulkForm.targetDepartment} onChange={e => setBulkForm({...bulkForm, targetDepartment: e.target.value})} style={{ width: '100%', border: 'none', background: 'transparent' }}>
+                        <option value="">Select...</option>
+                        {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="auth-field">
+                    <label style={{ fontSize: '0.8rem' }}>Year *</label>
+                    <div className="auth-input-wrap"><input required type="number" min="1" max="6" placeholder="e.g. 1" value={bulkForm.targetYear} onChange={e => setBulkForm({...bulkForm, targetYear: e.target.value})} /></div>
+                  </div>
+                </div>
+                <div className="auth-field" style={{ marginTop: '0.75rem' }}>
+                  <label style={{ fontSize: '0.8rem' }}>Section (Optional)</label>
+                  <div className="auth-input-wrap"><input placeholder="Limit to section e.g. A" value={bulkForm.targetSection} onChange={e => setBulkForm({...bulkForm, targetSection: e.target.value})} /></div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button type="button" className="btn-outline" onClick={() => setShowBulkModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Execute Bulk Action</button>
+              {/* Promotion Action */}
+              <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '1rem', border: '1px solid #bbf7d0' }}>
+                <label style={{ display: 'block', fontWeight: 700, color: '#166534', marginBottom: '0.8rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Promote To</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="auth-field">
+                    <label style={{ fontSize: '0.8rem' }}>New Year</label>
+                    <div className="auth-input-wrap"><input type="number" min="1" max="6" placeholder="Leave blank to skip" value={bulkForm.newYear} onChange={e => setBulkForm({...bulkForm, newYear: e.target.value})} /></div>
+                  </div>
+                  <div className="auth-field">
+                    <label style={{ fontSize: '0.8rem' }}>New Section</label>
+                    <div className="auth-input-wrap"><input placeholder="Leave blank to skip" value={bulkForm.newSection} onChange={e => setBulkForm({...bulkForm, newSection: e.target.value})} /></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn-outline" onClick={() => setShowBulkModal(false)} style={{ background: '#fff' }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}>Execute Promotion</button>
               </div>
             </form>
           </div>

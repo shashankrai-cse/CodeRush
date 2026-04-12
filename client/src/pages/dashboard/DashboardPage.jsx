@@ -43,10 +43,29 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [badgeCounts, setBadgeCounts] = useState({});
+
+  // Load "last seen" counts from localStorage
+  const getSeenCounts = () => {
+    try {
+      return JSON.parse(localStorage.getItem('badge_seen_counts') || '{}');
+    } catch { return {}; }
+  };
+
+  const saveSeenCount = (sectionKey, count) => {
+    const seen = getSeenCounts();
+    seen[sectionKey] = count;
+    localStorage.setItem('badge_seen_counts', JSON.stringify(seen));
+  };
 
   useEffect(() => {
     if (user) {
       fetchNotifications();
+      if (user.role === 'student') {
+        fetchBadgeCounts();
+        const interval = setInterval(fetchBadgeCounts, 30000);
+        return () => clearInterval(interval);
+      }
     }
   }, [user]);
 
@@ -56,6 +75,15 @@ export default function DashboardPage() {
       setNotifications(data.data.filter(n => !n.isRead));
     } catch (error) {
       console.error('Failed to fetch notifications', error);
+    }
+  };
+
+  const fetchBadgeCounts = async () => {
+    try {
+      const { data } = await api.get('/dashboard/badges');
+      setBadgeCounts(data.data);
+    } catch (error) {
+      console.error('Failed to fetch badge counts', error);
     }
   };
 
@@ -74,6 +102,24 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const visibleNav = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
+
+  // Map nav keys to badge API keys
+  const badgeKeyMap = {
+    assignments: 'assignments',
+    classes: 'classes',
+    practicals: 'practicals',
+    notices: 'notices',
+  };
+
+  // Handle section click: mark as "seen" and switch module
+  const handleNavClick = (itemKey) => {
+    const badgeKey = badgeKeyMap[itemKey];
+    if (badgeKey && badgeCounts[badgeKey] !== undefined) {
+      saveSeenCount(badgeKey, badgeCounts[badgeKey]);
+    }
+    setActiveModule(itemKey);
+    setSidebarOpen(false);
+  };
 
   function renderModule() {
     switch (activeModule) {
@@ -102,6 +148,9 @@ export default function DashboardPage() {
     }
   }
 
+  // Compute visible badge numbers (new items since last visit)
+  const seenCounts = getSeenCounts();
+
   return (
     <div className="dash-layout">
       {/* ── Mobile overlay ─────────────────────────── */}
@@ -117,20 +166,38 @@ export default function DashboardPage() {
         </div>
 
         <nav className="dash-sidebar-nav">
-          {visibleNav.map((item) => (
-            <button
-              key={item.key}
-              className={`dash-nav-item${activeModule === item.key ? ' active' : ''}`}
-              onClick={() => {
-                setActiveModule(item.key);
-                setSidebarOpen(false);
-              }}
-              type="button"
-            >
-              <span className="dash-nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {visibleNav.map((item) => {
+            const badgeKey = badgeKeyMap[item.key];
+            const serverCount = badgeKey ? (badgeCounts[badgeKey] || 0) : 0;
+            const lastSeen = badgeKey ? (seenCounts[badgeKey] || 0) : 0;
+            const newCount = Math.max(0, serverCount - lastSeen);
+            // Only show for students, only when there are NEW items, and not on the active section
+            const showBadge = user.role === 'student' && newCount > 0 && item.key !== activeModule;
+
+            return (
+              <button
+                key={item.key}
+                className={`dash-nav-item${activeModule === item.key ? ' active' : ''}`}
+                onClick={() => handleNavClick(item.key)}
+                type="button"
+                style={{ position: 'relative' }}
+              >
+                <span className="dash-nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+                {showBadge && (
+                  <span style={{
+                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                    minWidth: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#ef4444', color: '#fff', borderRadius: '99px', fontSize: '0.7rem',
+                    fontWeight: 800, padding: '0 5px', boxShadow: '0 2px 8px rgba(239,68,68,0.4)',
+                    animation: 'pulse 2s ease-in-out infinite'
+                  }}>
+                    {newCount > 99 ? '99+' : newCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="dash-sidebar-footer">

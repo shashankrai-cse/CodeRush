@@ -1,5 +1,7 @@
 import { Practical, PracticalSubmission } from './practical.model.js';
 import { Notification } from '../notification/notification.model.js';
+import { User } from '../auth/auth.model.js';
+import { sendBulkMail, buildEmailHTML } from '../../utils/mailer.js';
 import vm from 'vm'; // built-in node module for safe-ish JS execution
 
 // ─────────────────────────────────────────────────────────
@@ -18,6 +20,22 @@ export async function createPractical(req, res, next) {
       deadline,
       teacherId: req.user._id
     });
+
+    // Email notification to all students
+    const students = await User.find({ role: 'student' }).select('email fullName');
+    if (students.length > 0) {
+      sendBulkMail(students, `💻 New Practical: ${title}`, buildEmailHTML({
+        type: 'practical', icon: '💻',
+        title: `New Practical: ${title}`,
+        details: [
+          { label: 'Subject', value: subject },
+          { label: 'Description', value: description?.substring(0, 200) || 'No description' },
+          { label: 'Deadline', value: deadline ? new Date(deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'No deadline' },
+          { label: 'Posted By', value: req.user.fullName }
+        ],
+        ctaText: 'Open Virtual Lab →'
+      }));
+    }
 
     return res.status(201).json({
       success: true,

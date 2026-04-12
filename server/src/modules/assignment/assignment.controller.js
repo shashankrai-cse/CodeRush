@@ -6,6 +6,7 @@ import { Assignment, AssignmentRecord } from './assignment.model.js';
 import { User } from '../auth/auth.model.js';
 import PDFDocument from 'pdfkit';
 import { getIO } from '../../utils/socket.js';
+import { sendBulkMail, buildEmailHTML } from '../../utils/mailer.js';
 
 // ── Teacher creates assignment + auto-spawns records
 export async function createAssignment(req, res, next) {
@@ -56,6 +57,19 @@ export async function createAssignment(req, res, next) {
       } catch (err) {
         console.error('Socket emission failed:', err.message);
       }
+
+      // Email notification to students
+      sendBulkMail(students, `📝 New Assignment: ${assignment.title}`, buildEmailHTML({
+        type: 'assignment', icon: '📝',
+        title: `New Assignment: ${assignment.title}`,
+        details: [
+          { label: 'Subject', value: assignment.subject?.toString() || 'General' },
+          { label: 'Due Date', value: dueDate ? new Date(dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'No deadline' },
+          { label: 'Description', value: description?.substring(0, 200) || 'No description provided' },
+          { label: 'Posted By', value: req.user.fullName }
+        ],
+        ctaText: 'View Assignment →'
+      }));
     }
 
     return res.status(201).json({

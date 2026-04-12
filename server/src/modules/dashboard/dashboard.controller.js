@@ -1,6 +1,41 @@
 import { Assignment, AssignmentRecord } from '../assignment/assignment.model.js';
 import { AttendanceSession, AttendanceRecord } from '../attendance/attendance.model.js';
 import { User } from '../auth/auth.model.js';
+import { OnlineClass } from '../onlineClass/onlineClass.model.js';
+import { Notice } from '../notice/notice.model.js';
+import { Practical, PracticalSubmission } from '../practical/practical.model.js';
+
+// ── Badge counts for sidebar (student-only) ─────────────
+// Returns raw totals. The frontend tracks "last seen" counts
+// in localStorage and only shows a badge when the total increases.
+export async function getBadgeCounts(req, res, next) {
+  try {
+    const user = req.user;
+
+    // Only students get badge counts
+    if (user.role !== 'student') {
+      return res.status(200).json({ success: true, data: {} });
+    }
+
+    const badges = {};
+
+    // Pending assignments count
+    badges.assignments = await AssignmentRecord.countDocuments({ student: user._id, status: 'pending' });
+    
+    // Live classes for student's section
+    badges.classes = user.section ? await OnlineClass.countDocuments({ section: user.section, status: 'live' }) : 0;
+    
+    // Total practicals available (student can see how many exist)
+    badges.practicals = await Practical.countDocuments();
+
+    // Total notices count
+    badges.notices = await Notice.countDocuments();
+
+    return res.status(200).json({ success: true, data: badges });
+  } catch (error) {
+    return next(error);
+  }
+}
 
 function vary(base, spread, min = 0, max = Number.MAX_SAFE_INTEGER, decimals = 0) {
   const randomOffset = (Math.random() * 2 - 1) * spread;

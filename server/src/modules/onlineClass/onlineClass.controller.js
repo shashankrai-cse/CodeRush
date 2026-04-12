@@ -1,5 +1,7 @@
 import { OnlineClass } from './onlineClass.model.js';
 import { getIO } from '../../utils/socket.js';
+import { User } from '../auth/auth.model.js';
+import { sendBulkMail, buildEmailHTML } from '../../utils/mailer.js';
 
 // GET: /api/v1/classes (Teachers get theirs, Students get active ones in their section)
 export async function getLiveClasses(req, res, next) {
@@ -61,6 +63,24 @@ export async function createLiveClass(req, res, next) {
       getIO().to('classes-lobby').emit('classes-updated');
     } catch (err) {
       console.error('Lobby broadcast failed:', err);
+    }
+
+    // Email notification to section students
+    if (section) {
+      const students = await User.find({ role: 'student', section }).select('email fullName');
+      if (students.length > 0) {
+        sendBulkMail(students, `📹 Live Class Starting: ${title}`, buildEmailHTML({
+          type: 'class', icon: '📹',
+          title: `Live Class Starting Now!`,
+          details: [
+            { label: 'Class', value: title },
+            { label: 'Subject', value: subject || 'General' },
+            { label: 'Section', value: section },
+            { label: 'Teacher', value: req.user.fullName }
+          ],
+          ctaText: 'Join Class Now →'
+        }));
+      }
     }
 
     return res.status(201).json({ success: true, data: newClass });
