@@ -16,15 +16,15 @@ L.Icon.Default.mergeOptions({
 });
 
 // ── Campus Data ─────────────────────────────────────────
-const CAMPUS_CENTER = [26.8575, 80.9380];
-const CAMPUS_ZOOM = 17;
+const CAMPUS_CENTER = [26.8865, 81.0585];
+const CAMPUS_ZOOM = 16;
 
 // Campus boundary polygon (approximate)
 const CAMPUS_BOUNDARY = [
-  [26.8610, 80.9345],
-  [26.8610, 80.9420],
-  [26.8540, 80.9420],
-  [26.8540, 80.9345],
+  [26.8895, 81.0560],
+  [26.8895, 81.0600],
+  [26.8825, 81.0600],
+  [26.8825, 81.0560],
 ];
 
 const CATEGORY_STYLES = {
@@ -35,24 +35,66 @@ const CATEGORY_STYLES = {
   landmark:       { color: '#d69e2e', emoji: '⛩️', bg: '#fffff0' },
   residential:    { color: '#dd6b20', emoji: '🏠', bg: '#fffaf0' },
   infrastructure: { color: '#718096', emoji: '🅿️', bg: '#f7fafc' },
-  medical:        { color: '#e53e3e', emoji: '🏥', bg: '#fff5f5' },
+  medical:        { color: '#c53030', emoji: '🏥', bg: '#fff5f5' },
+  food:           { color: '#d53f8c', emoji: '🍽️', bg: '#fff5f7' },
+  transport:      { color: '#2c7a7b', emoji: '🚌', bg: '#e6fffa' },
+  garden:         { color: '#276749', emoji: '🌳', bg: '#f0fff4' },
+  services:       { color: '#744210', emoji: '🏢', bg: '#fffff0' },
 };
 
 const BUILDINGS = [
-  { id: 'main_gate',    name: 'Main Gate',                        lat: 26.8555, lng: 80.9365, category: 'entry',          floor: 'Ground', info: 'Primary campus entrance near Garden Temple' },
-  { id: 'a_block',      name: 'A-Block',                          lat: 26.8595, lng: 80.9375, category: 'academic',       floor: 'Multi-floor', info: 'School of Legal Studies, School of Computer Application, School of Management' },
-  { id: 'main_block',   name: 'Main Block (Library & Labs)',       lat: 26.8560, lng: 80.9370, category: 'academic',       floor: 'Ground & 1st', info: 'August Section, Library, Computer Lab, Architecture Department' },
-  { id: 'new_block',    name: 'New Block (Bidhut)',                lat: 26.8580, lng: 80.9400, category: 'academic',       floor: 'Multi-floor', info: 'School of Pharmacy, School of Management, IT Labs' },
-  { id: 'stadium',      name: 'Dr. Akhilesh Das Gupta Stadium',   lat: 26.8565, lng: 80.9395, category: 'sports',         floor: 'Open', info: 'Main sports ground & athletic track' },
-  { id: 'auditorium',   name: 'Auditorium',                       lat: 26.8580, lng: 80.9385, category: 'facility',       floor: 'Ground', info: 'Campus auditorium for events and seminars' },
-  { id: 'temple',       name: 'Garden Temple',                    lat: 26.8553, lng: 80.9360, category: 'landmark',       floor: 'Open', info: 'Sacred temple near the main entrance' },
-  { id: 'godown',       name: 'BBD Godown',                       lat: 26.8548, lng: 80.9365, category: 'infrastructure', floor: 'Ground', info: 'Campus storage and supply facility' },
-  { id: 'hostel',       name: 'Hostel',                           lat: 26.8558, lng: 80.9400, category: 'residential',    floor: 'Multi-floor', info: 'Student residential quarters' },
-  { id: 'parking',      name: 'Parking Area',                     lat: 26.8565, lng: 80.9375, category: 'infrastructure', floor: 'Open', info: 'Main vehicle parking zone' },
-  { id: 'dental',       name: 'BBD Dental Hospital',              lat: 26.8600, lng: 80.9360, category: 'medical',        floor: 'Multi-floor', info: 'University dental college & hospital' },
-  { id: 'h_block',      name: 'H-Block',                          lat: 26.8590, lng: 80.9365, category: 'academic',       floor: 'Multi-floor', info: 'BBD University H-Block — Engineering departments' },
-  { id: 'ece_block',    name: 'Dept. of ECE & CS Engineering',    lat: 26.8585, lng: 80.9370, category: 'academic',       floor: '4th & 6th', info: 'Electronics, Communication & Computer Science Engineering' },
-  { id: 'mba_hostel',   name: 'MBA Hostel',                       lat: 26.8552, lng: 80.9405, category: 'residential',    floor: 'Multi-floor', info: 'Hostel for MBA students' },
+  // ── Gates & Entry ──
+  { id: 'main_gate',       name: 'Main Gate',                              lat: 26.888526, lng: 81.056818, category: 'entry',          info: 'Primary campus entrance' },
+  { id: 'gate_east',       name: 'East Gate',                              lat: 26.887159, lng: 81.059814, category: 'entry',          info: 'Eastern campus gate' },
+  { id: 'university_gate', name: 'University Gate',                        lat: 26.889218, lng: 81.058706, category: 'entry',          info: 'BBD University entrance' },
+
+  // ── Academic Blocks ──
+  { id: 'main_block',      name: 'Main Block',                             lat: 26.887985, lng: 81.056755, category: 'academic',       info: 'Library, Computer Lab, Architecture Dept' },
+  { id: 'bbd_university',  name: 'BBD University',                         lat: 26.888654, lng: 81.058934, category: 'academic',       info: 'Main university building' },
+  { id: 'h_block',         name: 'BBD H-Block',                            lat: 26.887191, lng: 81.059058, category: 'academic',       info: 'Engineering departments' },
+  { id: 'bbdec',           name: 'BBDEC',                                  lat: 26.887143, lng: 81.057621, category: 'academic',       info: 'BBD Engineering College' },
+  { id: 'bbditm',          name: 'BBDITM',                                 lat: 26.886769, lng: 81.056959, category: 'academic',       info: 'BBD Institute of Technology & Management' },
+  { id: 'pharmacy_block',  name: 'BBDNIIT Pharmacy Block',                 lat: 26.886242, lng: 81.059323, category: 'academic',       info: 'School of Pharmacy' },
+  { id: 'new_block',       name: 'New Block BBDNIIT',                      lat: 26.885866, lng: 81.058905, category: 'academic',       info: 'New academic block' },
+  { id: 'admission_block', name: 'Admission Block',                        lat: 26.884994, lng: 81.058876, category: 'academic',       info: 'Student admissions office' },
+
+  // ── Medical ──
+  { id: 'dental_hospital', name: 'BBD Dental Hospital',                    lat: 26.888199, lng: 81.057541, category: 'medical',        info: 'University dental college & hospital' },
+
+  // ── Sports ──
+  { id: 'stadium',         name: 'Dr. Akhilesh Das Gupta Stadium',         lat: 26.883872, lng: 81.058574, category: 'sports',         info: 'Main sports ground & athletic track' },
+  { id: 'tennis_court',    name: 'BBD Tennis Court',                        lat: 26.885585, lng: 81.058033, category: 'sports',         info: 'Campus tennis courts' },
+
+  // ── Facilities ──
+  { id: 'auditorium',      name: 'Dr. Akhilesh Das Gupta Auditorium',      lat: 26.885374, lng: 81.058550, category: 'facility',       info: 'Campus auditorium for events & seminars' },
+  { id: 'student_welfare', name: 'Student Welfare',                         lat: 26.887256, lng: 81.057636, category: 'facility',       info: 'Student welfare office' },
+  { id: 'bbd_fm',          name: 'BBD FM',                                  lat: 26.887538, lng: 81.057952, category: 'facility',       info: 'Campus radio station' },
+  { id: 'police_station',  name: 'BBD Police Station',                      lat: 26.887193, lng: 81.059630, category: 'services',       info: 'Campus police outpost' },
+  { id: 'pnb_bank',        name: 'PNB Bank',                                lat: 26.884994, lng: 81.057869, category: 'services',       info: 'Punjab National Bank branch' },
+
+  // ── Residential ──
+  { id: 'vidyavati_hostel', name: 'Vidyavati Girls Hostel',                 lat: 26.886761, lng: 81.058210, category: 'residential',    info: 'Girls hostel' },
+  { id: 'girls_hostel',     name: 'Girls Hostel',                           lat: 26.886039, lng: 81.058295, category: 'residential',    info: 'Girls residential quarters' },
+  { id: 'nirmala_hostel',   name: 'Dr. Nirmala Devi Girls Hostel',          lat: 26.887782, lng: 81.058545, category: 'residential',    info: 'Girls hostel' },
+  { id: 'boys_hostel',      name: 'Boys Hostel A & B Block',                lat: 26.882876, lng: 81.058086, category: 'residential',    info: 'Boys residential hostel' },
+
+  // ── Food & Dining ──
+  { id: 'nescafe',          name: 'Nescafé',                                lat: 26.887143, lng: 81.058074, category: 'food',           info: 'Campus coffee shop' },
+  { id: 'dominos',          name: 'Dominos BBD',                            lat: 26.887829, lng: 81.058061, category: 'food',           info: 'Domino\'s Pizza outlet' },
+  { id: 'bbd_canteen',      name: 'BBD Canteen',                            lat: 26.887693, lng: 81.057872, category: 'food',           info: 'Main campus canteen' },
+  { id: 'stadium_canteen',  name: 'Stadium Canteen',                        lat: 26.884647, lng: 81.058382, category: 'food',           info: 'Canteen near the stadium' },
+
+  // ── Gardens & Landmarks ──
+  { id: 'temple',           name: 'Temple',                                  lat: 26.888437, lng: 81.057134, category: 'landmark',       info: 'Campus temple' },
+  { id: 'temple_garden',    name: 'Temple Garden',                           lat: 26.888578, lng: 81.057487, category: 'garden',         info: 'Garden near the temple' },
+  { id: 'dental_garden',    name: 'Dental Garden',                           lat: 26.888066, lng: 81.057361, category: 'garden',         info: 'Garden near dental hospital' },
+  { id: 'herbal_garden',    name: 'Herbal Garden',                           lat: 26.887380, lng: 81.058378, category: 'garden',         info: 'Medicinal herbal garden' },
+
+  // ── Infrastructure & Transport ──
+  { id: 'parking_1',        name: 'Parking Space (Main)',                    lat: 26.887726, lng: 81.056905, category: 'infrastructure', info: 'Main parking area' },
+  { id: 'parking_2',        name: 'Parking Space (Inner)',                   lat: 26.886978, lng: 81.057936, category: 'infrastructure', info: 'Inner campus parking' },
+  { id: 'buses',            name: 'Bus Stand',                               lat: 26.887013, lng: 81.059503, category: 'transport',      info: 'Campus bus terminal' },
+  { id: 'junction',         name: 'BBD Three Road Junction',                 lat: 26.886797, lng: 81.058764, category: 'transport',      info: 'Central road junction' },
 ];
 
 const MAIN_GATE = BUILDINGS.find(b => b.id === 'main_gate');
@@ -150,7 +192,7 @@ export default function CampusNavigatePage({ onBack }) {
           <h3 style="margin:0 0 4px 0; font-size:14px; color:${style.color};">${style.emoji} ${bld.name}</h3>
           <p style="margin:0 0 4px 0; font-size:12px; color:#555;">${bld.info}</p>
           <div style="font-size:11px; color:#888; border-top:1px solid #eee; padding-top:4px; margin-top:4px;">
-            📍 Floor: ${bld.floor} &nbsp;|&nbsp; 🏷️ ${bld.category}
+            📍 ${bld.lat.toFixed(6)}, ${bld.lng.toFixed(6)} &nbsp;|&nbsp; 🏷️ ${bld.category}
           </div>
         </div>
       `);
