@@ -10,6 +10,7 @@ import NoticePage from '../notices/NoticePage.jsx';
 import ComplaintPage from '../complaints/ComplaintPage.jsx';
 import UtilitiesPage from '../utilities/UtilitiesPage.jsx';
 import CampusLocationsPage from '../locations/CampusLocationsPage.jsx';
+import AssignmentsPage from '../assignments/AssignmentsPage.jsx';
 
 const ROLE_THEMES = {
   student: { emoji: '🎓', accent: '#b49359', label: 'Student' },
@@ -20,6 +21,7 @@ const ROLE_THEMES = {
 const NAV_ITEMS = [
   { key: 'overview', label: 'Overview', icon: '📊', roles: ['student', 'teacher', 'admin'] },
   { key: 'attendance', label: 'Attendance', icon: '📋', roles: ['student', 'teacher', 'admin'] },
+  { key: 'assignments', label: 'Assignments', icon: '📝', roles: ['student', 'teacher', 'admin'] },
   { key: 'notices', label: 'Notices', icon: '📢', roles: ['student', 'teacher', 'admin'] },
   { key: 'complaints', label: 'Complaints', icon: '🔧', roles: ['student', 'teacher', 'admin'] },
   { key: 'utilities', label: 'Utilities', icon: '🛠️', roles: ['student', 'teacher', 'admin'] },
@@ -41,6 +43,8 @@ export default function DashboardPage() {
     switch (activeModule) {
       case 'attendance':
         return <AttendancePage />;
+      case 'assignments':
+        return <AssignmentsPage />;
       case 'notices':
         return <NoticePage />;
       case 'complaints':

@@ -4,6 +4,7 @@
 
 import { AttendanceSession, AttendanceRecord } from './attendance.model.js';
 import { CampusLocation } from '../location/location.model.js';
+import { Subject } from '../subject/subject.model.js';
 import { isWithinCampus } from '../../utils/geo.js';
 
 // ── POST /sessions – Teacher creates a new attendance session
@@ -17,9 +18,15 @@ export async function createSession(req, res, next) {
 
     const sessionStatus = scheduledDate ? 'scheduled' : 'active';
 
+    let resolvedCampus = req.user.campus;
+    if (!resolvedCampus) {
+      const subjectDoc = await Subject.findById(subject);
+      resolvedCampus = subjectDoc?.campus;
+    }
+
     const session = await AttendanceSession.create({
       subject,
-      campus: req.user.campus,
+      campus: resolvedCampus,
       date: date || new Date(),
       scheduledDate,
       status: sessionStatus,

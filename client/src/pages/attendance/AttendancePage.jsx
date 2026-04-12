@@ -8,14 +8,19 @@ import api from '../../api/client.js';
 
 // ── Teacher View ────────────────────────────────────────
 function TeacherAttendance() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [form, setForm] = useState({ subject: '', expiresInMinutes: 30 });
   const [selectedSession, setSelectedSession] = useState(null);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
-  useEffect(() => { loadSessions(); }, []);
+  useEffect(() => { 
+    loadSessions(); 
+    loadSubjects();
+  }, []);
 
   async function loadSessions() {
     try {
@@ -24,12 +29,22 @@ function TeacherAttendance() {
     } catch { /* ignore */ }
   }
 
+  async function loadSubjects() {
+    try {
+      const { data } = await api.get('/subjects');
+      setSubjects(data.data.subjects);
+    } catch { /* ignore */ }
+  }
+
   async function createSession(e) {
     e.preventDefault();
     setLoading(true);
     setMsg('');
     try {
-      const { data } = await api.post('/attendance/sessions', form);
+      const { data } = await api.post('/attendance/sessions', {
+        ...form,
+        // Optional: admin might not have campus, but let's send subject's campus if needed
+      });
       setMsg(`Session created! Code: ${data.data.session.qrCode}`);
       setForm({ subject: '', expiresInMinutes: 30 });
       loadSessions();
@@ -61,13 +76,14 @@ function TeacherAttendance() {
           <div className="mod-form-row">
             <div className="mod-field">
               <label>Subject</label>
-              <input
-                type="text"
+              <select
                 value={form.subject}
                 onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                placeholder="e.g. Data Structures"
                 required
-              />
+              >
+                <option value="" disabled>Select Subject</option>
+                {subjects.map(s => <option key={s._id} value={s._id}>{s.name} ({s.code})</option>)}
+              </select>
             </div>
             <div className="mod-field">
               <label>Expires in (minutes)</label>
