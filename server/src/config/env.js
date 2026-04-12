@@ -19,7 +19,12 @@ const env = {
 
   // Refresh-token signing
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'replace-with-secure-refresh-secret',
-  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+
+  // Cloudinary Details
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET
 };
 
 export default env;
