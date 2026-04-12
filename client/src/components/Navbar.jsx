@@ -2,7 +2,7 @@
 // Navbar – top navigation with auth actions
 // ─────────────────────────────────────────────────────────
 
-export default function Navbar({ onLogin, onRegister }) {
+export default function Navbar({ onLogin, onRegister, onNavigate }) {
   return (
     <nav className="nav" id="main-nav">
       <div className="brand">
@@ -14,6 +14,7 @@ export default function Navbar({ onLogin, onRegister }) {
         <a href="#modules">Modules</a>
         <a href="#impact">Impact</a>
         <a href="#contact">Contact</a>
+        {onNavigate && <a href="#" onClick={(e) => { e.preventDefault(); onNavigate(); }} style={{ fontWeight: 600 }}>🗺️ Navigate</a>}
       </div>
 
       <div className="nav-actions">

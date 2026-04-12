@@ -13,13 +13,15 @@ import FooterCTA from './components/FooterCTA';
 import LoginPage from './pages/auth/LoginPage.jsx';
 import RegisterPage from './pages/auth/RegisterPage.jsx';
 import DashboardPage from './pages/dashboard/DashboardPage.jsx';
+import CampusNavigatePage from './pages/navigate/CampusNavigatePage.jsx';
 
 // ── View constants ──────────────────────────────────────
 const VIEW = {
   LANDING: 'landing',
   LOGIN: 'login',
   REGISTER: 'register',
-  DASHBOARD: 'dashboard'
+  DASHBOARD: 'dashboard',
+  NAVIGATE: 'navigate'
 };
 
 import { io } from 'socket.io-client';
@@ -94,6 +96,15 @@ function AppContent() {
     );
   }
 
+  // Campus Navigate page (public — no auth required)
+  if (view === VIEW.NAVIGATE) {
+    return (
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <CampusNavigatePage onBack={() => setView(VIEW.LANDING)} />
+      </div>
+    );
+  }
+
   // Landing page (default)
   return (
     <div className="page-shell">
@@ -101,6 +112,7 @@ function AppContent() {
       <Navbar
         onLogin={() => setView(VIEW.LOGIN)}
         onRegister={() => setView(VIEW.REGISTER)}
+        onNavigate={() => setView(VIEW.NAVIGATE)}
       />
       <main>
         <Hero3D onGetStarted={() => setView(VIEW.REGISTER)} />
