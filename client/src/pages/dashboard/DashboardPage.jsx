@@ -13,11 +13,8 @@ import UtilitiesPage from '../utilities/UtilitiesPage.jsx';
 import CampusLocationsPage from '../locations/CampusLocationsPage.jsx';
 import AssignmentsPage from '../assignments/AssignmentsPage.jsx';
 import PracticalPage from '../practicals/PracticalPage.jsx';
-<<<<<<< HEAD
 import ClassesPage from '../onlineClass/ClassesPage.jsx';
-=======
 import UserManagementPage from '../users/UserManagementPage.jsx';
->>>>>>> b60fd64911fb9247c1b70c1dba37652f5a7163b6
 
 const ROLE_THEMES = {
   student: { emoji: '🎓', accent: '#b49359', label: 'Student' },
@@ -33,14 +30,9 @@ const NAV_ITEMS = [
   { key: 'notices', label: 'Notices', icon: '📢', roles: ['student', 'teacher', 'admin'] },
   { key: 'complaints', label: 'Complaints', icon: '🔧', roles: ['student', 'teacher', 'admin'] },
   { key: 'utilities', label: 'Utilities', icon: '🛠️', roles: ['student', 'teacher', 'admin'] },
-<<<<<<< HEAD
-  { key: 'practicals', label: 'Practicals', icon: '💻', roles: ['student', 'teacher', 'admin'] },
   { key: 'classes', label: 'Online Classes', icon: '📹', roles: ['student', 'teacher', 'admin'] },
-  { key: 'locations', label: 'Campus Locations', icon: '📍', roles: ['admin'] }
-=======
   { key: 'locations', label: 'Campus Locations', icon: '📍', roles: ['admin'] },
   { key: 'users', label: 'People', icon: '👥', roles: ['teacher', 'admin'] }
->>>>>>> b60fd64911fb9247c1b70c1dba37652f5a7163b6
 ];
 
 export default function DashboardPage() {

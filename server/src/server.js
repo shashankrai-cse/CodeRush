@@ -12,9 +12,6 @@ import cron from 'node-cron';
 import { Assignment } from './modules/assignment/assignment.model.js';
 import { Notification } from './modules/notification/notification.model.js';
 
-import http from 'http';
-import { initializeSocket } from './socket.js';
-
 async function startServer() {
   try {
     await connectMongo();
@@ -22,21 +19,11 @@ async function startServer() {
     // Seed default campus location if none exist
     await seedDefaultLocation();
 
-<<<<<<< HEAD
-    // Create native HTTP server wrapping Express
-    const server = http.createServer(app);
-
-    // Initialize Socket.io on that server
-    initializeSocket(server);
-
-    server.listen(env.port, () => {
-      console.log(`Smart Campus OS API & WebSocket listening on port ${env.port}`);
-=======
     // Create HTTP Server for express and socket.io
     const httpServer = http.createServer(app);
     
     // Initialize WebSockets
-    const io = initSocket(httpServer, { origin: env.clientOrigin });
+    const io = initSocket(httpServer, { origin: env.clientOrigin || '*' });
 
     // Schedule automated reminders checking every hour
     cron.schedule('0 * * * *', async () => {
@@ -52,8 +39,7 @@ async function startServer() {
     });
 
     httpServer.listen(env.port, () => {
-      console.log(`Smart Campus OS API listening on port ${env.port}`);
->>>>>>> b60fd64911fb9247c1b70c1dba37652f5a7163b6
+      console.log(`Smart Campus OS API & WebSocket listening on port ${env.port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error.message);
