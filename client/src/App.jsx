@@ -8,8 +8,8 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import Navbar from './components/Navbar';
 import Hero3D from './components/Hero3D';
 import Modules from './components/Modules';
-import ImpactStats from './components/ImpactStats';
-import FooterCTA from './components/FooterCTA';
+import Team from './components/Team';
+import Footer from './components/Footer';
 import LoginPage from './pages/auth/LoginPage.jsx';
 import RegisterPage from './pages/auth/RegisterPage.jsx';
 import DashboardPage from './pages/dashboard/DashboardPage.jsx';
@@ -30,15 +30,46 @@ const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.re
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth();
-  const [view, setView] = useState(isAuthenticated ? VIEW.DASHBOARD : VIEW.LANDING);
+  
+  // Use a lazy initializer for view based on URL hash
+  const [view, setView] = useState(() => {
+    if (isAuthenticated) return VIEW.DASHBOARD;
+    if (window.location.hash === '#navigate') return VIEW.NAVIGATE;
+    if (window.location.hash === '#login') return VIEW.LOGIN;
+    if (window.location.hash === '#register') return VIEW.REGISTER;
+    return VIEW.LANDING;
+  });
+
   const [toast, setToast] = useState(null);
+
+  // Sync state to URL hash and listen for back button
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (isAuthenticated) {
+        setView(VIEW.DASHBOARD);
+      } else if (hash === '#navigate') setView(VIEW.NAVIGATE);
+      else if (hash === '#login') setView(VIEW.LOGIN);
+      else if (hash === '#register') setView(VIEW.REGISTER);
+      else setView(VIEW.LANDING);
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [isAuthenticated]);
+
+  // View setter wrapper that pushes to URL
+  const changeView = (newView) => {
+    if (newView === VIEW.LANDING) window.location.hash = '';
+    else window.location.hash = newView;
+    setView(newView);
+  };
 
   useEffect(() => {
     if (isAuthenticated && user?.role === 'student') {
       const socket = io(socketUrl);
       
       socket.on('new_assignment', (data) => {
-        // Simple check if it targets this student
         if ((!data.targetDepartment || data.targetDepartment === user.department) &&
             (!data.targetYear || Number(data.targetYear) === Number(user.enrollmentYear)) &&
             (!data.targetSection || data.targetSection === user.section)) {
@@ -51,12 +82,10 @@ function AppContent() {
     }
   }, [isAuthenticated, user]);
 
-  // When auth succeeds, go to dashboard
   function handleAuthSuccess() {
-    setView(VIEW.DASHBOARD);
+    changeView(VIEW.DASHBOARD);
   }
 
-  // If user is authenticated, show dashboard
   if (isAuthenticated && view !== VIEW.LANDING) {
     return (
       <>
@@ -71,13 +100,12 @@ function AppContent() {
     );
   }
 
-  // Auth pages
   if (view === VIEW.LOGIN) {
     return (
       <div className="auth-page">
         <div className="auth-bg-layer" />
         <LoginPage
-          onSwitch={() => setView(VIEW.REGISTER)}
+          onSwitch={() => changeView(VIEW.REGISTER)}
           onSuccess={handleAuthSuccess}
         />
       </div>
@@ -89,37 +117,35 @@ function AppContent() {
       <div className="auth-page">
         <div className="auth-bg-layer" />
         <RegisterPage
-          onSwitch={() => setView(VIEW.LOGIN)}
+          onSwitch={() => changeView(VIEW.LOGIN)}
           onSuccess={handleAuthSuccess}
         />
       </div>
     );
   }
 
-  // Campus Navigate page (public — no auth required)
   if (view === VIEW.NAVIGATE) {
     return (
       <div style={{ width: '100vw', height: '100vh' }}>
-        <CampusNavigatePage onBack={() => setView(VIEW.LANDING)} />
+        <CampusNavigatePage onBack={() => changeView(VIEW.LANDING)} />
       </div>
     );
   }
 
-  // Landing page (default)
   return (
     <div className="page-shell">
       <div className="bg-layer" />
       <Navbar
-        onLogin={() => setView(VIEW.LOGIN)}
-        onRegister={() => setView(VIEW.REGISTER)}
-        onNavigate={() => setView(VIEW.NAVIGATE)}
+        onLogin={() => changeView(VIEW.LOGIN)}
+        onRegister={() => changeView(VIEW.REGISTER)}
+        onNavigate={() => changeView(VIEW.NAVIGATE)}
       />
       <main>
-        <Hero3D onGetStarted={() => setView(VIEW.REGISTER)} />
-        <Modules />
-        <ImpactStats />
-        <FooterCTA onGetStarted={() => setView(VIEW.REGISTER)} />
+        <Hero3D onGetStarted={() => changeView(VIEW.REGISTER)} onNavigate={() => changeView(VIEW.NAVIGATE)} />
+        <Modules onGetStarted={() => changeView(VIEW.LOGIN)} />
+        <Team />
       </main>
+      <Footer />
     </div>
   );
 }
