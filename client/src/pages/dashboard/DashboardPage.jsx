@@ -13,6 +13,7 @@ import UtilitiesPage from '../utilities/UtilitiesPage.jsx';
 import CampusLocationsPage from '../locations/CampusLocationsPage.jsx';
 import AssignmentsPage from '../assignments/AssignmentsPage.jsx';
 import PracticalPage from '../practicals/PracticalPage.jsx';
+import ClassesPage from '../onlineClass/ClassesPage.jsx';
 
 const ROLE_THEMES = {
   student: { emoji: '🎓', accent: '#b49359', label: 'Student' },
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { key: 'complaints', label: 'Complaints', icon: '🔧', roles: ['student', 'teacher', 'admin'] },
   { key: 'utilities', label: 'Utilities', icon: '🛠️', roles: ['student', 'teacher', 'admin'] },
   { key: 'practicals', label: 'Practicals', icon: '💻', roles: ['student', 'teacher', 'admin'] },
+  { key: 'classes', label: 'Online Classes', icon: '📹', roles: ['student', 'teacher', 'admin'] },
   { key: 'locations', label: 'Campus Locations', icon: '📍', roles: ['admin'] }
 ];
 
@@ -83,6 +85,8 @@ export default function DashboardPage() {
         return <UtilitiesPage />;
       case 'practicals':
         return <PracticalPage />;
+      case 'classes':
+        return <ClassesPage />;
       case 'locations':
         return <CampusLocationsPage />;
       default:
