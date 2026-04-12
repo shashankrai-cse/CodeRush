@@ -69,6 +69,16 @@ const userSchema = new mongoose.Schema(
       maxlength: 10
     },
 
+    rollNumber: {
+      type: String,
+      trim: true,
+      maxlength: 50
+    },
+
+    profilePicture: {
+      type: String // URL to uploaded avatar
+    },
+
     avatarSeed: {
       type: String,
       default: 'campus'
@@ -114,6 +124,8 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     campus: this.campus,
     enrollmentYear: this.enrollmentYear,
     section: this.section,
+    rollNumber: this.rollNumber,
+    profilePicture: this.profilePicture,
     avatarSeed: this.avatarSeed,
     lastLoginAt: this.lastLoginAt,
     createdAt: this.createdAt

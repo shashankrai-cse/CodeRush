@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../api/client.js';
+import { DEPARTMENTS } from '../../constants.js';
 
 const ROLES = [
   { value: 'student', label: '🎓 Student', description: 'Access classes, attendance & resources' },
@@ -192,14 +193,7 @@ export default function RegisterPage({ onSwitch, onSuccess }) {
               className="auth-select"
             >
               <option value="" disabled>Select a department</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Electronics & Communication">Electronics & Communication</option>
-              <option value="Electrical Engineering">Electrical Engineering</option>
-              <option value="Mechanical Engineering">Mechanical Engineering</option>
-              <option value="Civil Engineering">Civil Engineering</option>
-              <option value="Business Administration">Business Administration</option>
-              <option value="Other">Other</option>
+              {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </div>

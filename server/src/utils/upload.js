@@ -57,3 +57,5 @@ export function createUploader(folder, maxSizeMB = 10) {
 // Pre-built uploaders for each module
 export const noticeUploader = createUploader('notices', 10);
 export const noteUploader = createUploader('notes', 15);
+export const assignmentUploader = createUploader('assignments', 20);
+export const avatarUploader = createUploader('avatars', 5);

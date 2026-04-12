@@ -13,7 +13,7 @@ const ROLE_THEMES = {
 };
 
 export default function OverviewPanel() {
-  const { user } = useAuth();
+  const { user, fetchMe } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,11 +37,60 @@ export default function OverviewPanel() {
 
   if (!user) return null;
 
+  async function handleAvatarUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      await api.post('/users/me/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      fetchMe();
+    } catch (err) {
+      alert('Failed to upload picture: ' + (err.response?.data?.message || err.message));
+    }
+  }
+
+  async function handleAvatarRemove() {
+    if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
+    try {
+      await api.delete('/users/me/avatar');
+      fetchMe();
+    } catch (err) {
+      alert('Failed to remove picture');
+    }
+  }
+
   return (
     <>
       {/* ── Greeting ──────────────────────────────────── */}
-      <section className="mod-hero">
-        <div className="mod-hero-orb" />
+      <section className="mod-hero" style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', right: '3rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+          <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+            <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: `4px solid ${theme.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdfdfd', fontSize: '3rem', fontWeight: 'bold', color: theme.accent, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              {user.profilePicture ? (
+                <img src={`http://localhost:5000${user.profilePicture}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span>{user.fullName.charAt(0).toUpperCase()}</span>
+              )}
+            </div>
+            
+            <label style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '32px', height: '32px', backgroundColor: theme.accent, color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', border: '2px solid white', zIndex: 2, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} title="Upload Picture">
+              ✏️
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+            </label>
+
+            {user.profilePicture && (
+              <button 
+                onClick={handleAvatarRemove} 
+                style={{ position: 'absolute', top: '-4px', right: '-4px', width: '28px', height: '28px', backgroundColor: '#ef4444', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.8rem', border: '2px solid white', zIndex: 2, boxShadow: '0 2px 4px rgba(0,0,0,0.2)', padding: 0 }} 
+                title="Remove Picture"
+              >
+                ✖
+              </button>
+            )}
+          </div>
+        </div>
+        
         <h1>{dashboard?.headline || `Welcome back, ${user.fullName.split(' ')[0]}`}</h1>
         <p>{dashboard?.subtitle || 'Your personalised campus intelligence workspace is ready.'}</p>
         <div className="dash-role-badge" style={{ borderColor: theme.accent }}>
@@ -94,6 +143,8 @@ export default function OverviewPanel() {
           <div className="mod-detail-item"><span className="mod-detail-key">Email</span><span className="mod-detail-val">{user.email}</span></div>
           <div className="mod-detail-item"><span className="mod-detail-key">Role</span><span className="mod-detail-val">{theme.emoji} {theme.label}</span></div>
           <div className="mod-detail-item"><span className="mod-detail-key">Department</span><span className="mod-detail-val">{user.department || 'Not specified'}</span></div>
+          {user.section && <div className="mod-detail-item"><span className="mod-detail-key">Section</span><span className="mod-detail-val">{user.section}</span></div>}
+          {user.rollNumber && <div className="mod-detail-item"><span className="mod-detail-key">Roll Number</span><span className="mod-detail-val">{user.rollNumber}</span></div>}
           <div className="mod-detail-item"><span className="mod-detail-key">Last Login</span><span className="mod-detail-val">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'First session'}</span></div>
           <div className="mod-detail-item"><span className="mod-detail-key">Account Created</span><span className="mod-detail-val">{new Date(user.createdAt).toLocaleDateString()}</span></div>
         </div>

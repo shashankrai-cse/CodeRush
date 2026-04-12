@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../api/client.js';
+import { DEPARTMENTS } from '../../constants.js';
 
 export default function AssignmentsPage() {
   const { user } = useAuth();
@@ -80,13 +81,23 @@ export default function AssignmentsPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'assignment-report.pdf');
+      link.setAttribute('download', `assignment-${assignmentId}-report.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
       console.error(err);
       alert('Failed to download report');
+    }
+  }
+
+  async function handleDeleteAssignment(id) {
+    if (!window.confirm('Are you sure you want to completely delete this assignment and all student records?')) return;
+    try {
+      await api.delete(`/assignments/${id}`);
+      fetchAssignments();
+    } catch (err) {
+      alert('Failed to delete assignment: ' + (err.response?.data?.message || err.message));
     }
   }
 
@@ -138,7 +149,7 @@ export default function AssignmentsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-4 flex gap-4 items-center">
+                  <div className="mt-4" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     {record.assignment.pdfAttachment && (
                       <a href={`http://localhost:5000${record.assignment.pdfAttachment}`} target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm font-medium">
                         View Assignment PDF
@@ -152,11 +163,13 @@ export default function AssignmentsPage() {
                             try {
                               const fd = new FormData();
                               fd.append('file', e.target.files[0]);
-                              await api.post(`/assignments/records/${record._id}/submit`, fd);
+                              await api.post(`/assignments/records/${record._id}/submit`, fd, {
+                                headers: { 'Content-Type': 'multipart/form-data' }
+                              });
                               alert('Submitted!');
                               fetchAssignments();
                             } catch (err) {
-                              alert('Submission failed');
+                              alert('Submission failed: ' + (err.response?.data?.message || err.message));
                             }
                           }}
                         />
@@ -192,7 +205,7 @@ export default function AssignmentsPage() {
         <div className="dash-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="mod-card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 className="text-xl font-medium mb-4">Post New Assignment</h3>
-            <form onSubmit={handleCreateAssignment} className="flex flex-col gap-4">
+            <form onSubmit={handleCreateAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <input required placeholder="Assignment Title" className="mod-input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
               <textarea placeholder="Description" className="mod-input min-h-[100px]" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
               
@@ -205,7 +218,10 @@ export default function AssignmentsPage() {
               <input type="date" required className="mod-input" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} />
 
               <div className="pt-2 border-t font-medium text-sm">Target Scope (Student Filter)</div>
-              <input placeholder="Department (e.g. Computer Science)" className="mod-input" value={form.targetDepartment} onChange={e => setForm({...form, targetDepartment: e.target.value})} />
+              <select className="mod-input" value={form.targetDepartment} onChange={e => setForm({...form, targetDepartment: e.target.value})}>
+                <option value="">All Departments</option>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
               <input type="number" placeholder="Year (e.g. 2)" min="1" max="6" className="mod-input" value={form.targetYear} onChange={e => setForm({...form, targetYear: e.target.value})} />
               <input placeholder="Section (e.g. A)" className="mod-input" value={form.targetSection} onChange={e => setForm({...form, targetSection: e.target.value})} />
 
@@ -226,7 +242,7 @@ export default function AssignmentsPage() {
   );
 }
 
-function TeacherAssignmentCard({ assignment, downloadReport }) {
+function TeacherAssignmentCard({ assignment, downloadReport, deleteAssignment }) {
   const [expanded, setExpanded] = useState(false);
   const [records, setRecords] = useState([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
@@ -267,6 +283,9 @@ function TeacherAssignmentCard({ assignment, downloadReport }) {
           <p className="text-sm text-ink-500">{assignment.subject?.name} • Due: {new Date(assignment.dueDate).toLocaleDateString()}</p>
         </div>
         <div className="flex gap-4">
+          <button className="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); deleteAssignment(assignment._id); }}>
+            Delete
+          </button>
           <button className="btn-outline text-sm" onClick={(e) => { e.stopPropagation(); downloadReport(assignment._id); }}>
             PDF Report
           </button>

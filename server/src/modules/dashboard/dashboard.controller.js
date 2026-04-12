@@ -1,21 +1,50 @@
+import { Assignment, AssignmentRecord } from '../assignment/assignment.model.js';
+import { AttendanceSession, AttendanceRecord } from '../attendance/attendance.model.js';
+import { User } from '../auth/auth.model.js';
+
 function vary(base, spread, min = 0, max = Number.MAX_SAFE_INTEGER, decimals = 0) {
   const randomOffset = (Math.random() * 2 - 1) * spread;
   const value = Math.min(max, Math.max(min, base + randomOffset));
   return Number(value.toFixed(decimals));
 }
 
-function getStudentDashboard() {
-  const attendance = vary(94.8, 2.4, 80, 100, 1);
-  const cgpaProjection = vary(8.4, 0.5, 5, 10, 2);
+async function getStudentDashboard(user) {
+  // Attendance logic
+  const totalRecords = await AttendanceRecord.countDocuments({ student: user._id });
+  const presentRecords = await AttendanceRecord.countDocuments({ student: user._id, status: 'present' });
+  let attendancePct = 0;
+  if (totalRecords > 0) {
+    attendancePct = ((presentRecords / totalRecords) * 100).toFixed(1);
+  }
+
+  // Pending Assignments
+  const pendingAssignments = await AssignmentRecord.countDocuments({ student: user._id, status: 'pending' });
+
+  // CGPA Projection approx from assignment marks
+  const gradedAssignments = await AssignmentRecord.find({ student: user._id, status: 'completed' });
+  let cgpaProjection = 0;
+  if (gradedAssignments.length > 0) {
+    const totalMarks = gradedAssignments.reduce((acc, curr) => acc + curr.marks, 0);
+    // Assuming out of 100 max mapped to 10 scale
+    cgpaProjection = ((totalMarks / gradedAssignments.length) / 10).toFixed(2);
+  }
+
+  // Upcoming classes (Sessions for today)
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const classesToday = await AttendanceSession.countDocuments({ 
+    department: user.department || { $exists: true }, 
+    date: { $gte: startOfToday }
+  });
 
   return {
     headline: 'Student Command Center',
     subtitle: 'Track academics, mobility, and wellbeing in one intelligent workspace.',
     quickStats: [
-      { label: 'Attendance', value: `${attendance}%`, trend: '+1.2%' },
-      { label: 'Upcoming Classes', value: `${vary(5, 2, 1, 10)} Today`, trend: 'On Schedule' },
-      { label: 'Assignment Deadlines', value: `${vary(3, 2, 0, 8)} Pending`, trend: 'Focus Window' },
-      { label: 'CGPA Projection', value: cgpaProjection.toString(), trend: '+0.18' }
+      { label: 'Attendance', value: totalRecords > 0 ? `${attendancePct}%` : 'N/A', trend: totalRecords > 0 ? '+1.2%' : 'No records' },
+      { label: 'Upcoming Classes', value: `${classesToday} Today`, trend: 'On Schedule' },
+      { label: 'Assignment Deadlines', value: `${pendingAssignments} Pending`, trend: 'Focus Window' },
+      { label: 'CGPA Projection', value: gradedAssignments.length > 0 ? cgpaProjection.toString() : 'N/A', trend: '+0.18' }
     ],
     focusCards: [
       {
@@ -30,21 +59,39 @@ function getStudentDashboard() {
       },
       {
         title: 'Mentor Alerts',
-        value: `${vary(2, 1, 0, 5)} unread`,
+        value: `0 unread`,
         note: 'New guidance updates'
       }
     ]
   };
 }
 
-function getTeacherDashboard() {
+async function getTeacherDashboard(user) {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  
+  // Classes created today by teacher
+  const classesToday = await AttendanceSession.countDocuments({ createdBy: user._id, date: { $gte: startOfToday } });
+  
+  // Avg Attendance
+  const teacherSessions = await AttendanceSession.find({ createdBy: user._id }).select('_id');
+  const sessionIds = teacherSessions.map(s => s._id);
+  const totalTeacherRecords = await AttendanceRecord.countDocuments({ session: { $in: sessionIds } });
+  const presentTeacherRecords = await AttendanceRecord.countDocuments({ session: { $in: sessionIds }, status: 'present' });
+  const avgAttendance = totalTeacherRecords > 0 ? ((presentTeacherRecords / totalTeacherRecords) * 100).toFixed(1) : 0;
+
+  // Submissions to review
+  const teacherAssignments = await Assignment.find({ teacher: user._id }).select('_id');
+  const assignmentIds = teacherAssignments.map(a => a._id);
+  const submissionsToReview = await AssignmentRecord.countDocuments({ assignment: { $in: assignmentIds }, status: 'submitted' });
+
   return {
     headline: 'Teacher Insight Deck',
     subtitle: 'Run classes, assessments, and interventions with predictive assistance.',
     quickStats: [
-      { label: 'Classes Today', value: `${vary(4, 2, 1, 8)}`, trend: '2 upcoming' },
-      { label: 'Avg Attendance', value: `${vary(89.3, 3.5, 70, 100, 1)}%`, trend: '+0.9%' },
-      { label: 'Submissions to Review', value: `${vary(37, 12, 10, 70)}`, trend: 'AI sorted' },
+      { label: 'Classes Today', value: `${classesToday}`, trend: 'Upcoming' },
+      { label: 'Avg Attendance', value: totalTeacherRecords > 0 ? `${avgAttendance}%` : 'N/A', trend: '+0.9%' },
+      { label: 'Submissions to Review', value: `${submissionsToReview}`, trend: 'AI sorted' },
       { label: 'At-Risk Students', value: `${vary(12, 5, 2, 25)}`, trend: '-2 today' }
     ],
     focusCards: [
@@ -55,26 +102,29 @@ function getTeacherDashboard() {
       },
       {
         title: 'Grading Queue',
-        value: `${vary(22, 9, 5, 45)} tasks`,
+        value: `${submissionsToReview} tasks`,
         note: 'Suggested rubric enabled'
       },
       {
         title: 'Parent Connect',
-        value: `${vary(7, 3, 1, 14)} pending`,
+        value: `0 pending`,
         note: 'Follow-up reminders active'
       }
     ]
   };
 }
 
-function getAdminDashboard() {
+async function getAdminDashboard() {
+  const totalStudents = await User.countDocuments({ role: 'student' });
+  const totalTeachers = await User.countDocuments({ role: 'teacher' });
+
   return {
     headline: 'Admin Operations Grid',
     subtitle: 'Monitor institution health, security, and efficiency in real time.',
     quickStats: [
       { label: 'Campus Uptime', value: `${vary(99.92, 0.05, 99.5, 100, 2)}%`, trend: 'Stable' },
-      { label: 'Energy Savings', value: `${vary(21.4, 2, 8, 35, 1)}%`, trend: '+2.1%' },
-      { label: 'Incidents Open', value: `${vary(9, 4, 1, 20)}`, trend: '-1 from yesterday' },
+      { label: 'Total Students', value: `${totalStudents}`, trend: 'Active' },
+      { label: 'Total Teachers', value: `${totalTeachers}`, trend: 'Active' },
       { label: 'Active Devices', value: `${vary(2480, 220, 1600, 3200)}`, trend: 'IoT mesh live' }
     ],
     focusCards: [
@@ -90,30 +140,30 @@ function getAdminDashboard() {
       },
       {
         title: 'Security Alerts',
-        value: `${vary(4, 3, 0, 12)} active`,
+        value: `0 active`,
         note: 'Auto-triage in progress'
       }
     ]
   };
 }
 
-export async function getRoleDashboard(req, res) {
-  const role = req.params.role;
+export async function getRoleDashboard(req, res, next) {
+  try {
+    const role = req.params.role;
+    let payload = {};
+    if (role === 'student') payload = await getStudentDashboard(req.user);
+    if (role === 'teacher') payload = await getTeacherDashboard(req.user);
+    if (role === 'admin') payload = await getAdminDashboard();
 
-  const factory = {
-    student: getStudentDashboard,
-    teacher: getTeacherDashboard,
-    admin: getAdminDashboard
-  };
-
-  const payloadBuilder = factory[role];
-
-  return res.status(200).json({
-    success: true,
-    data: {
-      role,
-      generatedAt: new Date().toISOString(),
-      ...payloadBuilder()
-    }
-  });
+    return res.status(200).json({
+      success: true,
+      data: {
+        role,
+        generatedAt: new Date().toISOString(),
+        ...payload
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
 }

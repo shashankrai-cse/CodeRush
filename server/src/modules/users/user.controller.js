@@ -69,3 +69,53 @@ export async function deleteUser(req, res, next) {
     return next(error);
   }
 }
+
+// Upload/Update Profile Picture for Logged in User
+export async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image uploaded' });
+    const profilePicture = `/uploads/avatars/${req.file.filename}`;
+    const user = await User.findByIdAndUpdate(req.user._id, { profilePicture }, { new: true });
+    return res.status(200).json({ success: true, message: 'Profile picture updated', data: { user: user.toSafeObject() } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// Remove Profile Picture for Logged in User
+export async function removeAvatar(req, res, next) {
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id, { $unset: { profilePicture: 1 } }, { new: true });
+    return res.status(200).json({ success: true, message: 'Profile picture removed', data: { user: user.toSafeObject() } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// Bulk Promote Students
+export async function bulkPromote(req, res, next) {
+  try {
+    // Only teachers/admins
+    if (req.user.role === 'student') return res.status(403).json({ success: false, message: 'Unauthorized' });
+
+    const { targetDepartment, targetYear, targetSection, newYear, newSection } = req.body;
+    if (!targetDepartment || !targetYear) {
+      return res.status(400).json({ success: false, message: 'Target Department and Target Year are required.' });
+    }
+
+    const filter = { role: 'student', department: targetDepartment, enrollmentYear: targetYear };
+    if (targetSection) filter.section = targetSection;
+
+    const updatePlayload = {};
+    if (newYear) updatePlayload.enrollmentYear = newYear;
+    if (newSection) updatePlayload.section = newSection;
+    if (Object.keys(updatePlayload).length === 0) {
+      return res.status(400).json({ success: false, message: 'Nothing to update' });
+    }
+
+    const result = await User.updateMany(filter, { $set: updatePlayload });
+    return res.status(200).json({ success: true, message: `Successfully updated ${result.modifiedCount} students.` });
+  } catch (error) {
+    return next(error);
+  }
+}

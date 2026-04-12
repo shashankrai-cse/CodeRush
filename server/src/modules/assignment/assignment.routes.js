@@ -4,7 +4,7 @@
 
 import { Router } from 'express';
 import { protect, authorize } from '../../middleware/auth.js';
-import { createAssignment, submitAssignment, getAssignments, getAssignmentRecords, gradeAssignment, generateAssignmentPdf } from './assignment.controller.js';
+import { createAssignment, submitAssignment, getAssignments, getAssignmentRecords, gradeAssignment, generateAssignmentPdf, deleteAssignment } from './assignment.controller.js';
 import { createUploader } from '../../utils/upload.js';
 
 const router = Router();
@@ -15,6 +15,9 @@ router.post('/', protect, authorize('teacher', 'admin'), assignmentUploader.sing
 
 // Fetch assignments (student fetches theirs, teacher fetches theirs)
 router.get('/', protect, getAssignments);
+
+// Teacher deletes assignment
+router.delete('/:id', protect, authorize('teacher', 'admin'), deleteAssignment);
 
 // Teacher fetches specific records for an assignment
 router.get('/:id/records', protect, authorize('teacher', 'admin'), getAssignmentRecords);

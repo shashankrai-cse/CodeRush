@@ -117,13 +117,39 @@ export async function gradeAssignment(req, res, next) {
     const { id } = req.params; // record ID
     const { marks } = req.body;
 
+    const currentRecord = await AssignmentRecord.findById(id);
+    if (!currentRecord) return res.status(404).json({ success: false, message: 'Record not found' });
+
+    let updatedStatus = 'completed';
+    // If the student never submitted it, but teacher is grading, mark it as not_submitted automatically
+    if (currentRecord.status === 'pending') {
+      updatedStatus = 'not_submitted';
+    }
+
     const record = await AssignmentRecord.findByIdAndUpdate(
       id,
-      { status: 'completed', marks },
+      { status: updatedStatus, marks },
       { new: true }
     );
 
     return res.status(200).json({ success: true, message: 'Student graded', data: { record } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// ── Teacher deletes an assignment
+export async function deleteAssignment(req, res, next) {
+  try {
+    const { id } = req.params;
+    
+    const assignment = await Assignment.findOne({ _id: id, teacher: req.user._id });
+    if (!assignment) return res.status(404).json({ success: false, message: 'Assignment not found or unauthorized' });
+
+    await Assignment.deleteOne({ _id: id });
+    await AssignmentRecord.deleteMany({ assignment: id });
+
+    return res.status(200).json({ success: true, message: 'Assignment and related records deleted successfully' });
   } catch (error) {
     return next(error);
   }
@@ -139,18 +165,34 @@ export async function generateAssignmentPdf(req, res, next) {
     const records = await AssignmentRecord.find({ assignment: id })
       .populate('student', 'fullName email section');
 
-    const doc = new PDFDocument();
+    // Dynamically import pdfkit-table to avoid static crash if it wasn't there initially
+    const PDFDocumentTable = (await import('pdfkit-table')).default;
+    const doc = new PDFDocumentTable({ margin: 30, size: 'A4' });
+    
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=assignment-${id}.pdf`);
     doc.pipe(res);
 
     doc.fontSize(20).text(`Assignment Report: ${assignment.title}`, { align: 'center' });
-    doc.fontSize(14).text(`Subject: ${assignment.subject.name}`);
+    doc.fontSize(12).text(`Subject: ${assignment.subject.name}`);
     doc.text(`Due: ${new Date(assignment.dueDate).toLocaleDateString()}`);
-    doc.moveDown();
+    doc.moveDown(2);
 
-    records.forEach((r, idx) => {
-      doc.fontSize(12).text(`${idx + 1}. ${r.student.fullName} (${r.student.section || 'N/A'}) - ${r.status.toUpperCase()} - Marks: ${r.marks}`);
+    const tableArray = {
+      title: "Student Marks & Status",
+      headers: ["S.No", "Student Name", "Section", "Status", "Marks"],
+      rows: records.map((r, idx) => [
+        String(idx + 1),
+        r.student.fullName,
+        r.student.section || 'N/A',
+        r.status.toUpperCase(),
+        String(r.marks)
+      ])
+    };
+
+    await doc.table(tableArray, { 
+      prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+      prepareRow: () => doc.font("Helvetica").fontSize(10)
     });
 
     doc.end();
