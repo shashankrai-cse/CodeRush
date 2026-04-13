@@ -15,6 +15,5 @@ const copilotCacheSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-copilotCacheSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
 
 export default mongoose.model('CopilotCache', copilotCacheSchema);

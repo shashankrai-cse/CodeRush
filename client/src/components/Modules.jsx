@@ -10,7 +10,7 @@ const pillars = [
     title: 'Smart Attendance',
     body: 'Automated attendance tracking tied directly to your university identity. See your real-time percentages and prevent shortfalls before they happen.',
     badge: 'Real-time Tracking',
-    image: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop',
+    image: '/smart-attendance.png',
     gradient: 'linear-gradient(135deg, #1a1c2e 0%, #2d3561 100%)',
     iconGradient: 'linear-gradient(135deg, #667eea, #764ba2)',
     icon: (
@@ -41,7 +41,7 @@ const pillars = [
     title: 'Assignment Portal',
     body: 'Never lose a PDF again. Upload and download study materials and assignments via integrated Cloudinary cloud pipelines.',
     badge: 'Cloud Hosted',
-    image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&auto=format&fit=crop',
+    image: '/assignment-portal.png',
     gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
     iconGradient: 'linear-gradient(135deg, #4facfe, #00f2fe)',
     icon: (
@@ -58,7 +58,7 @@ const pillars = [
     title: 'Virtual Classrooms',
     body: 'Join seamless WebRTC video lectures. Watch real-time whiteboards and ask questions in live chat without leaving the OS.',
     badge: 'WebRTC P2P',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop',
+    image: '/virtual-classrooms.png',
     gradient: 'linear-gradient(135deg, #232526 0%, #414345 100%)',
     iconGradient: 'linear-gradient(135deg, #43e97b, #38f9d7)',
     icon: (
