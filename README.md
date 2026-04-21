@@ -1,4 +1,4 @@
-# Smart Campus OS (MERN)
+# Smart Campus Management (MERN)
 
 A modular full-stack Smart Campus web platform using MongoDB, Express, React, and Node.js.
 
